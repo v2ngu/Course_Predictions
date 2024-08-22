@@ -6,7 +6,14 @@ def clean_text(text):
     return re.sub(r'\s{2,}', ' ', text).strip()
 
 def clean_time(time):
-    return re.sub(r'[^\d:]', '', time) 
+    return re.sub(r'[^\d:]', '', time)
+
+def split_rooms(room):
+    # Split rooms based on the pattern of a room (e.g., RLP 0.102)
+    rooms = re.findall(r'[A-Z]+\s?\d+\.\d+', room)
+    room1 = rooms[0] if len(rooms) > 0 else None
+    lab_room = rooms[1] if len(rooms) > 1 else None
+    return room1, lab_room
 
 html_dir = 'htmlcourses/'
 
@@ -54,29 +61,33 @@ for i in range(1, 4):
                 lab_start_time = clean_time(lab_times[0]) if len(lab_times) > 0 else ""
                 lab_end_time = clean_time(lab_times[1]) if len(lab_times) > 1 else ""
 
+            # Split rooms into class room and lab room
+            room1, lab_room = split_rooms(clean_text(columns[3].get_text()))
+
             section = {
                 'NAME': course_name,
                 'PROFESSOR': clean_text(columns[5].get_text()),
                 'DAYS': clean_text(columns[1].get_text()),
                 'STARTTIME': start_time,
                 'ENDTIME': end_time,
-                'ROOM': clean_text(columns[3].get_text()),
+                'ROOM': room1,
+                'LAB_ROOM': lab_room,
                 'INSTRUCTION_MODE': clean_text(columns[4].get_text()),
                 'STATUS': clean_text(columns[6].get_text()),
                 'FLAGS': clean_text(columns[7].get_text()),
                 'CORE': clean_text(columns[8].get_text()) if len(columns) > 8 else None,
-                'PLUS': clean_text(columns[9].get_text()) if len(columns) > 9 else None,
+                'PLUS': None,  # Removed PLUS field
                 'ID': course_id,
-                'LAB': None,
+                'LAB_DAY': None,  # LAB_DAY will hold the lab day
                 'LAB_STARTTIME': lab_start_time,
                 'LAB_ENDTIME': lab_end_time
             }
 
-            # Check for lab details
+            # Set LAB_DAY based on the class days
             if re.match(r'MWF(M?)', section['DAYS']):
-                section['LAB'] = 'M'
+                section['LAB_DAY'] = 'M'
             elif re.match(r'TTh(F?)', section['DAYS']):
-                section['LAB'] = 'F'
+                section['LAB_DAY'] = 'F'
 
             courses.append(section)
             course_id += 1
